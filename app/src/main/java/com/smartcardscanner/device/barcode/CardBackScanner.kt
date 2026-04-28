@@ -21,7 +21,8 @@ import kotlin.coroutines.resume
 @Singleton
 class CardBackScanner @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val mrzParser: MrzParser
+    private val mrzParser: MrzParser,
+    private val payloadParser: BarcodePayloadParser = BarcodePayloadParser()
 ) {
     private val barcodeScanner = BarcodeScanning.getClient()
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -37,6 +38,12 @@ class CardBackScanner @Inject constructor(
         val nameEnglish: String = "",
         val nameArabic: String = "",
         val documentNumber: String = "",
+        val nationalId: String = "",
+        val dateOfBirth: String = "",
+        val placeOfBirth: String = "",
+        val governorate: String = "",
+        val district: String = "",
+        val motherName: String = "",
         val isSuccess: Boolean = false
     )
 
@@ -59,8 +66,19 @@ class CardBackScanner @Inject constructor(
         val mrzLines = mrzParser.extractMrzFromText(textResult)
         val mrzData = mrzLines?.let { mrzParser.parseTD1(it) }
 
-        // Extract name from text (English name line)
-        val nameEnglish = extractEnglishName(textResult)
+        // Extract name from text (English name line) — fallback only.
+        val nameEnglishFromOcr = extractEnglishName(textResult)
+
+        // Prefer the structured PDF417 payload when available — that's where
+        // the Arabic name lives on Yemeni eID cards.
+        val nameEnglish = barcodeResult?.nameEnglish?.takeIf { it.isNotBlank() }
+            ?: nameEnglishFromOcr
+            ?: mrzData?.fullNameEnglish
+            ?: ""
+        val nameArabic = barcodeResult?.nameArabic.orEmpty()
+        val nationalId = barcodeResult?.nationalId.orEmpty()
+        val dateOfBirth = barcodeResult?.dateOfBirth.orEmpty()
+        val extra = barcodeResult?.additionalData ?: emptyMap()
 
         val isSuccess = mrzData != null || barcodeResult != null
 
@@ -68,8 +86,15 @@ class CardBackScanner @Inject constructor(
             mrzData = mrzData,
             barcodeData = barcodeResult,
             ocrText = textResult,
-            nameEnglish = nameEnglish ?: mrzData?.fullNameEnglish ?: "",
+            nameEnglish = nameEnglish,
+            nameArabic = nameArabic,
             documentNumber = mrzData?.documentNumber ?: "",
+            nationalId = nationalId,
+            dateOfBirth = dateOfBirth,
+            placeOfBirth = extra["placeOfBirth"].orEmpty(),
+            governorate = extra["governorate"].orEmpty(),
+            district = extra["district"].orEmpty(),
+            motherName = extra["motherName"].orEmpty(),
             isSuccess = isSuccess
         )
     }
@@ -80,15 +105,11 @@ class CardBackScanner @Inject constructor(
                 .addOnSuccessListener { barcodes ->
                     val barcode = barcodes.firstOrNull()
                     if (barcode != null) {
-                        val data = BarcodeData(
-                            rawValue = barcode.rawValue ?: "",
-                            format = formatName(barcode.format),
-                            nameArabic = "",
-                            nameEnglish = "",
-                            nationalId = "",
-                            dateOfBirth = ""
+                        val raw = barcode.rawValue ?: ""
+                        val parsed = payloadParser.parse(raw).copy(
+                            format = formatName(barcode.format)
                         )
-                        cont.resume(data)
+                        cont.resume(parsed)
                     } else {
                         cont.resume(null)
                     }

@@ -31,6 +31,13 @@ data class ScanUiState(
     val barcodeData: BarcodeData? = null,
     val backScanText: String = "",
     val nameFromBack: String = "",
+    val nameArabicFromBack: String = "",
+    val nationalIdFromBack: String = "",
+    val dateOfBirthFromBack: String = "",
+    val placeOfBirthFromBack: String = "",
+    val governorateFromBack: String = "",
+    val districtFromBack: String = "",
+    val motherNameFromBack: String = "",
     val backScanStatus: String = "",
     val isBackScanSuccess: Boolean = false,
     // NFC data
@@ -86,7 +93,7 @@ class ScanViewModel @Inject constructor(
     // --- Back Scan ---
 
     fun onBackScanResult(result: CardBackScanner.ScanResult) {
-        val nameEnglish = result.mrzData?.fullNameEnglish ?: result.nameEnglish
+        val nameEnglish = result.nameEnglish.ifBlank { result.mrzData?.fullNameEnglish.orEmpty() }
         val status = if (result.isSuccess) "تم بنجاح" else "فشل"
 
         _uiState.value = _uiState.value.copy(
@@ -94,12 +101,26 @@ class ScanViewModel @Inject constructor(
             barcodeData = result.barcodeData,
             backScanText = result.ocrText,
             nameFromBack = nameEnglish,
+            nameArabicFromBack = result.nameArabic,
+            nationalIdFromBack = result.nationalId,
+            dateOfBirthFromBack = result.dateOfBirth,
+            placeOfBirthFromBack = result.placeOfBirth,
+            governorateFromBack = result.governorate,
+            districtFromBack = result.district,
+            motherNameFromBack = result.motherName,
             backScanStatus = status,
             isBackScanSuccess = result.isSuccess,
             phase = ScanPhase.BACK_COMPLETE
         )
 
-        Log.d(TAG, "Back scan complete: MRZ=${result.mrzData != null}, name=$nameEnglish")
+        Log.d(
+            TAG,
+            "Back scan complete: MRZ=${result.mrzData != null}, ar='${result.nameArabic}', en='$nameEnglish'"
+        )
+
+        // The user wants matching to happen the moment the barcode is scanned
+        // — don't wait for NFC. Kick off matching now.
+        viewModelScope.launch { performMatching() }
     }
 
     fun skipBackScan() {
@@ -182,36 +203,41 @@ class ScanViewModel @Inject constructor(
         val state = _uiState.value
         val results = mutableListOf<MatchResult>()
 
-        // Try matching by national ID first (most accurate)
-        val nationalId = state.mrzData?.documentNumber
-            ?: state.nfcData?.documentNumber
-            ?: ""
-
-        if (nationalId.isNotBlank()) {
+        // 1) Try the national id from the barcode payload (xxxx-xxxx-xxxx).
+        //    On Yemeni eID this is the same number stored in the SSN column
+        //    of the personnel database, so an exact match here is gold.
+        val nationalIdCandidates = listOfNotNull(
+            state.nationalIdFromBack.takeIf { it.isNotBlank() },
+            state.mrzData?.documentNumber?.takeIf { it.isNotBlank() },
+            state.nfcData?.documentNumber?.takeIf { it.isNotBlank() }
+        )
+        for (nid in nationalIdCandidates) {
             val candidates = personnelRepository.searchByName("")
-            val idMatch = nameMatcher.matchByNationalId(nationalId, candidates)
+            val idMatch = nameMatcher.matchByNationalId(nid, candidates)
             if (idMatch != null) {
                 results.add(idMatch)
+                break
             }
         }
 
-        // Try matching by name
-        val nameToMatch = state.nfcData?.fullName
-            ?: state.nameFromBack
-            ?: ""
-
-        if (nameToMatch.isNotBlank() && results.isEmpty()) {
-            val candidates = personnelRepository.searchByName(nameToMatch)
-            val nameResults = nameMatcher.matchByName(nameToMatch, candidates)
-            results.addAll(nameResults)
-        }
-
-        // Also try with English name from MRZ
-        val englishName = state.mrzData?.fullNameEnglish ?: ""
-        if (englishName.isNotBlank() && results.isEmpty()) {
-            val candidates = personnelRepository.searchByName(englishName)
-            val nameResults = nameMatcher.matchByName(englishName, candidates)
-            results.addAll(nameResults)
+        // 2) Smart-match by name. Prefer the Arabic name from the barcode
+        //    (because the personnel database column "الاسم" is in Arabic).
+        //    Fall back to NFC arabic name, then OCR/MRZ english name.
+        val nameCandidates = listOfNotNull(
+            state.nameArabicFromBack.takeIf { it.isNotBlank() },
+            state.nfcData?.fullName?.takeIf { it.isNotBlank() },
+            state.nameFromBack.takeIf { it.isNotBlank() },
+            state.mrzData?.fullNameEnglish?.takeIf { it.isNotBlank() }
+        )
+        if (results.isEmpty()) {
+            for (name in nameCandidates) {
+                val candidates = personnelRepository.searchByName(name)
+                val nameResults = nameMatcher.matchByName(name, candidates)
+                if (nameResults.isNotEmpty()) {
+                    results.addAll(nameResults)
+                    break
+                }
+            }
         }
 
         val selectedMatch = results.firstOrNull { it.matchType == MatchType.EXACT }
