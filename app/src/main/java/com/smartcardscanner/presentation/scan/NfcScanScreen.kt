@@ -1,5 +1,6 @@
 package com.smartcardscanner.presentation.scan
 
+import android.nfc.NfcAdapter
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -34,17 +35,32 @@ fun NfcScanScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // Register NFC callback with Activity
+    // Check NFC hardware availability
+    val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
+    val hasNfcHardware = nfcAdapter != null
+    val isNfcEnabled = nfcAdapter?.isEnabled == true
+
+    // NFC chip detection state
+    var chipDetected by remember { mutableStateOf(false) }
+    var chipUid by remember { mutableStateOf("") }
+    var detectionDone by remember { mutableStateOf(false) }
+
+    // Register NFC callback with Activity for chip detection
     DisposableEffect(Unit) {
         val activity = context as? MainActivity
         activity?.setNfcCallback { tag ->
-            viewModel.onNfcTagDiscovered(tag)
+            chipDetected = true
+            chipUid = tag.id?.joinToString("") { "%02X".format(it) } ?: ""
+            detectionDone = true
+            // Store NFC detection info in viewModel
+            viewModel.onNfcChipDetected(chipDetected, chipUid, tag.techList?.joinToString(", ") ?: "")
         }
         onDispose {
             activity?.setNfcCallback(null)
         }
     }
 
+    // Auto-proceed to results after detection
     LaunchedEffect(uiState.phase) {
         if (uiState.phase == ScanPhase.NFC_COMPLETE || uiState.phase == ScanPhase.RESULTS_READY) {
             onScanComplete()
@@ -93,7 +109,7 @@ fun NfcScanScreen(
                 Icon(Icons.Filled.ArrowForward, "رجوع", tint = Color.White)
             }
             Text(
-                text = "قراءة NFC",
+                text = "فحص شريحة NFC",
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
@@ -103,8 +119,8 @@ fun NfcScanScreen(
             Spacer(modifier = Modifier.width(48.dp))
         }
 
-        // MRZ status from previous step
-        if (uiState.isBackScanSuccess) {
+        // MRZ data summary from previous step
+        if (uiState.isBackScanSuccess && uiState.mrzData != null) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -119,100 +135,176 @@ fun NfcScanScreen(
                     Icon(Icons.Filled.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("تم مسح الخلفية بنجاح", fontSize = 14.sp, color = SuccessGreen, fontWeight = FontWeight.Medium)
-                        if (uiState.mrzData != null) {
-                            Text(
-                                "رقم الوثيقة: ${uiState.mrzData?.documentNumber}",
-                                fontSize = 12.sp,
-                                color = OnSurface.copy(alpha = 0.7f)
-                            )
-                        }
+                        Text("تم مسح الباركود", fontSize = 14.sp, color = SuccessGreen, fontWeight = FontWeight.Medium)
+                        Text(
+                            "الاسم: ${uiState.mrzData?.fullNameEnglish ?: ""}",
+                            fontSize = 12.sp,
+                            color = OnSurface.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
         }
 
-        // NFC animation area
+        // Main content
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
             contentAlignment = Alignment.Center
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(80.dp),
-                    color = PrimaryBlue
-                )
-                Text(
-                    text = "جاري قراءة الشريحة...",
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 32.dp),
-                    fontSize = 16.sp,
-                    color = PrimaryBlue
-                )
-            } else if (uiState.isNfcSuccess) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!hasNfcHardware) {
+                // Device doesn't have NFC
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
                     Icon(
-                        Icons.Filled.CheckCircle,
+                        Icons.Filled.PhonelinkErase,
                         null,
-                        tint = SuccessGreen,
-                        modifier = Modifier.size(80.dp)
+                        tint = ErrorRed,
+                        modifier = Modifier.size(72.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "تم قراءة الشريحة بنجاح!",
+                        "هذا الجهاز لا يدعم NFC",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SuccessGreen
+                        color = ErrorRed,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "لا يمكن فحص وجود الشريحة",
+                        fontSize = 14.sp,
+                        color = OnSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
                     )
                 }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(contentAlignment = Alignment.Center) {
-                        // Pulse ring
-                        Box(
-                            modifier = Modifier
-                                .size(160.dp)
-                                .scale(pulseScale)
-                                .alpha(pulseAlpha)
-                                .background(
-                                    color = PrimaryLight.copy(alpha = 0.3f),
-                                    shape = CircleShape
-                                )
+            } else if (!isNfcEnabled) {
+                // NFC is off
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.SignalWifiOff,
+                        null,
+                        tint = WarningOrange,
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "NFC معطّل",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WarningOrange,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "فعّل NFC من الإعدادات ثم أعد المحاولة",
+                        fontSize = 14.sp,
+                        color = OnSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else if (detectionDone) {
+                // Detection result
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    if (chipDetected) {
+                        // Chip found!
+                        Icon(
+                            Icons.Filled.VerifiedUser,
+                            null,
+                            tint = SuccessGreen,
+                            modifier = Modifier.size(80.dp)
                         )
-                        // NFC icon
-                        Surface(
-                            modifier = Modifier.size(100.dp),
-                            shape = CircleShape,
-                            color = PrimaryBlue
-                        ) {
-                            Icon(
-                                Icons.Filled.Nfc,
-                                null,
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .padding(24.dp)
-                                    .fillMaxSize()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "تم اكتشاف شريحة NFC",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SuccessGreen,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "البطاقة تحتوي على شريحة إلكترونية",
+                            fontSize = 14.sp,
+                            color = OnSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                        if (chipUid.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "UID: $chipUid",
+                                fontSize = 12.sp,
+                                color = OnSurface.copy(alpha = 0.5f),
+                                textAlign = TextAlign.Center
                             )
                         }
+                    } else {
+                        Icon(
+                            Icons.Filled.Warning,
+                            null,
+                            tint = ErrorRed,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "لا توجد شريحة NFC",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ErrorRed,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                // Waiting for card
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        // Pulse circles
+                        Box(
+                            modifier = Modifier
+                                .size(150.dp)
+                                .scale(pulseScale)
+                                .alpha(pulseAlpha)
+                                .background(PrimaryBlue.copy(alpha = 0.2f), CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .scale(pulseScale * 0.9f)
+                                .alpha(pulseAlpha * 1.5f)
+                                .background(PrimaryBlue.copy(alpha = 0.3f), CircleShape)
+                        )
+                        Icon(
+                            Icons.Filled.Nfc,
+                            null,
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(64.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-
                     Text(
-                        "قرّب البطاقة من خلف الهاتف",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
+                        "قرّب البطاقة من الهاتف",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
                         color = PrimaryDark,
                         textAlign = TextAlign.Center
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
-                        "ابقِ البطاقة ثابتة حتى تكتمل القراءة",
+                        "لفحص وجود شريحة NFC",
                         fontSize = 14.sp,
                         color = OnSurface.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center
@@ -221,48 +313,49 @@ fun NfcScanScreen(
             }
         }
 
-        // Error display
-        if (uiState.error != null) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.1f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Filled.Error, null, tint = ErrorRed, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(uiState.error ?: "", fontSize = 14.sp, color = ErrorRed)
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        // Bottom controls
+        // Bottom buttons
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedButton(
-                onClick = {
-                    viewModel.skipNfc()
-                    onSkip()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Filled.SkipNext, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("تخطي NFC — الاستمرار بدون شريحة", fontSize = 14.sp)
+            if (detectionDone && chipDetected) {
+                Button(
+                    onClick = {
+                        viewModel.skipNfc()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                ) {
+                    Icon(Icons.Filled.Search, null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("متابعة — مطابقة مع القاعدة", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = {
+                    if (!detectionDone) {
+                        detectionDone = true
+                        chipDetected = false
+                        viewModel.onNfcChipDetected(false, "", "")
+                    }
+                    viewModel.skipNfc()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    if (detectionDone) "تخطي — الذهاب للنتائج" else "لا توجد شريحة — تخطي",
+                    fontSize = 14.sp
+                )
+            }
         }
     }
 }

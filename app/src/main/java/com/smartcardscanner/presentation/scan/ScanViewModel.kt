@@ -145,11 +145,27 @@ class ScanViewModel @Inject constructor(
         }
     }
 
+    fun onNfcChipDetected(detected: Boolean, uid: String, techList: String) {
+        val status = if (detected) "شريحة موجودة (UID: $uid)" else "لا توجد شريحة"
+        val nfcData = if (detected) NfcData(
+            uid = uid,
+            chipInfo = "شريحة NFC مكتشفة — $techList"
+        ) else null
+
+        _uiState.value = _uiState.value.copy(
+            nfcData = nfcData,
+            nfcStatus = status,
+            isNfcSuccess = detected
+        )
+    }
+
     fun skipNfc() {
         _uiState.value = _uiState.value.copy(
-            nfcStatus = "تم التخطي",
             phase = ScanPhase.NFC_COMPLETE
         )
+        if (_uiState.value.nfcStatus.isBlank()) {
+            _uiState.value = _uiState.value.copy(nfcStatus = "تم التخطي")
+        }
         viewModelScope.launch {
             performMatching()
         }
