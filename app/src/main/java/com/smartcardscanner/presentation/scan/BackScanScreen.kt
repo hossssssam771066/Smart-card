@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.smartcardscanner.device.barcode.CardBackScanner
 import com.smartcardscanner.presentation.theme.*
 import kotlinx.coroutines.launch

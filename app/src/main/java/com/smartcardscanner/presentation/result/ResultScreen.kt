@@ -204,7 +204,7 @@ fun ResultScreen(
                                 onClick = { viewModel.selectMatch(result) }
                             )
                             if (index < uiState.matchResults.size - 1) {
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                Divider(modifier = Modifier.padding(vertical = 4.dp))
                             }
                         }
                     }
@@ -275,7 +275,7 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
                 fontWeight = FontWeight.Bold,
                 color = PrimaryBlue
             )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
             content()
         }
     }

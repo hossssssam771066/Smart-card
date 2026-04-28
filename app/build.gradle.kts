@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.smartcardscanner"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -51,6 +51,8 @@ android {
             excludes += "META-INF/LICENSE.txt"
             excludes += "META-INF/NOTICE"
             excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            excludes += "META-INF/MANIFEST.MF"
         }
     }
 }
@@ -107,12 +109,9 @@ dependencies {
 
     // NFC / JMRTD for ePassport/eID
     implementation("org.jmrtd:jmrtd:0.7.42")
-    implementation("net.sf.scuba:scuba-sc-android:0.0.24")
-    implementation("com.madgag.spongycastle:prov:1.58.0.0")
-    implementation("net.sf.scuba:scuba-data:0.0.7")
-
-    // JPEG2000 support (some ePassport photos use JPEG2000)
-    implementation("com.github.yalantis:ucrop:2.2.8")
+    implementation("net.sf.scuba:scuba-sc-android:0.0.26")
+    implementation("net.sf.scuba:scuba-smartcards:0.0.20")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
 
     // WorkManager for background tasks
     implementation("androidx.work:work-runtime-ktx:2.9.0")

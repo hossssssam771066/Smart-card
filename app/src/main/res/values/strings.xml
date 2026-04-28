@@ -63,7 +63,7 @@
     <!-- Import Screen -->
     <string name="select_excel_file">اختيار ملف Excel</string>
     <string name="importing">جاري الاستيراد…</string>
-    <string name="import_progress">%d / %d صف</string>
+    <string name="import_progress">%1$d / %2$d صف</string>
     <string name="import_complete">تم استيراد %d سجل بنجاح</string>
     <string name="import_error">خطأ في الاستيراد</string>
     <string name="delete_database">حذف القاعدة الحالية</string>

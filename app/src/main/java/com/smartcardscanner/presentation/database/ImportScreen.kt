@@ -152,7 +152,7 @@ fun ImportScreen(
 
                         if (uiState.importTotal > 0) {
                             LinearProgressIndicator(
-                                progress = { uiState.importProgress.toFloat() / uiState.importTotal.toFloat() },
+                                progress = uiState.importProgress.toFloat() / uiState.importTotal.toFloat(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(8.dp),

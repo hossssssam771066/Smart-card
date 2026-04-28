@@ -1,6 +1,7 @@
 package com.smartcardscanner.presentation.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -212,8 +213,9 @@ private fun ActionCard(
     onClick: () -> Unit
 ) {
     Card(
-        onClick = onClick,
-        modifier = modifier.height(120.dp),
+        modifier = modifier
+            .height(120.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Surface)
     ) {
