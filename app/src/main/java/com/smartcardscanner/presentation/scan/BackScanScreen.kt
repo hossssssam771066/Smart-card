@@ -160,7 +160,38 @@ fun BackScanScreen(
                     }
                 }
 
-                // Barcode data if available
+                // Structured barcode payload (PDF417) — Arabic name, place, etc.
+                if (uiState.nameArabicFromBack.isNotBlank() ||
+                    uiState.nationalIdFromBack.isNotBlank() ||
+                    uiState.placeOfBirthFromBack.isNotBlank()
+                ) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Surface)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "البيانات المستخرجة من الباركود",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryBlue
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ExtractedField("الاسم بالعربي", uiState.nameArabicFromBack)
+                            ExtractedField("الاسم بالإنجليزي", uiState.nameFromBack)
+                            ExtractedField("الرقم الوطني", uiState.nationalIdFromBack)
+                            ExtractedField("تاريخ الميلاد", uiState.dateOfBirthFromBack)
+                            ExtractedField("مكان الميلاد", uiState.placeOfBirthFromBack)
+                            ExtractedField("المحافظة", uiState.governorateFromBack)
+                            ExtractedField("المديرية", uiState.districtFromBack)
+                            ExtractedField("اسم الأم", uiState.motherNameFromBack)
+                        }
+                    }
+                }
+
+                // Raw barcode metadata (debug)
                 uiState.barcodeData?.let { barcode ->
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
@@ -170,14 +201,13 @@ fun BackScanScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                "بيانات الباركود",
+                                "نوع الباركود",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryBlue
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             ExtractedField("النوع", barcode.format)
-                            ExtractedField("القيمة", barcode.rawValue)
                         }
                     }
                 }
