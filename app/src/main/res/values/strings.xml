@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ماسح البطائق الذكية</string>
+
+    <!-- Home Screen -->
+    <string name="start_new_scan">بدء مسح جديد</string>
+    <string name="import_database">استيراد قاعدة البيانات</string>
+    <string name="view_records">عرض السجلات</string>
+    <string name="export_excel">تصدير إلى Excel</string>
+    <string name="settings">الإعدادات</string>
+    <string name="cards_scanned">بطاقات تم مسحها</string>
+    <string name="database_status">حالة القاعدة</string>
+    <string name="records_loaded">%d سجل محمّل</string>
+    <string name="no_database">لم يتم استيراد قاعدة بيانات</string>
+    <string name="developer_name">حسام احمد المحمودي</string>
+    <string name="developer_phone">771066868</string>
+
+    <!-- Scan Screen -->
+    <string name="scan_back">مسح الخلفية</string>
+    <string name="scan_nfc">مسح NFC</string>
+    <string name="scanning_back">جاري مسح خلفية البطاقة…</string>
+    <string name="scanning_nfc">قرّب البطاقة من الهاتف…</string>
+    <string name="point_camera_mrz">وجّه الكاميرا نحو خلفية البطاقة</string>
+    <string name="scan_success">تم المسح بنجاح</string>
+    <string name="scan_failed">فشل المسح</string>
+    <string name="no_nfc_chip">لا توجد شريحة NFC</string>
+    <string name="nfc_unreadable">شريحة غير مقروءة</string>
+    <string name="nfc_not_supported">هذا الجهاز لا يدعم NFC</string>
+    <string name="skip_nfc">تخطي NFC</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="manual_entry">إدخال يدوي</string>
+    <string name="flash_on">تشغيل الفلاش</string>
+    <string name="flash_off">إيقاف الفلاش</string>
+
+    <!-- Results Screen -->
+    <string name="results">النتائج</string>
+    <string name="name_from_back">الاسم من الخلفية</string>
+    <string name="name_from_nfc">الاسم من NFC</string>
+    <string name="photo_from_nfc">الصورة من NFC</string>
+    <string name="name_from_database">الاسم حسب القاعدة</string>
+    <string name="ssn">SSN</string>
+    <string name="national_id">الرقم الوطني</string>
+    <string name="military_number">الرقم العسكري</string>
+    <string name="rank">الرتبة</string>
+    <string name="main_unit">الوحدة الرئيسية</string>
+    <string name="sub_unit">الوحدة الفرعية</string>
+    <string name="military_card">البطاقة العسكرية</string>
+    <string name="match_result">نتيجة المطابقة</string>
+    <string name="nfc_status">حالة NFC</string>
+    <string name="back_scan_status">حالة قراءة الخلفية</string>
+    <string name="notes">ملاحظات</string>
+    <string name="save_record">حفظ</string>
+    <string name="new_scan">مسح جديد</string>
+
+    <!-- Match Results -->
+    <string name="match_exact">تطابق مباشر</string>
+    <string name="match_strong">تطابق قوي</string>
+    <string name="match_possible">تطابق محتمل</string>
+    <string name="match_none">غير موجود في القاعدة</string>
+    <string name="match_score">نسبة التطابق: %d%%</string>
+    <string name="select_match">اختر التطابق الصحيح</string>
+
+    <!-- Import Screen -->
+    <string name="select_excel_file">اختيار ملف Excel</string>
+    <string name="importing">جاري الاستيراد…</string>
+    <string name="import_progress">%d / %d صف</string>
+    <string name="import_complete">تم استيراد %d سجل بنجاح</string>
+    <string name="import_error">خطأ في الاستيراد</string>
+    <string name="delete_database">حذف القاعدة الحالية</string>
+    <string name="confirm_delete">هل أنت متأكد من حذف جميع البيانات؟</string>
+
+    <!-- Records Screen -->
+    <string name="search_records">بحث في السجلات…</string>
+    <string name="no_records">لا توجد سجلات محفوظة</string>
+    <string name="export_all">تصدير الكل إلى Excel</string>
+
+    <!-- General -->
+    <string name="cancel">إلغاء</string>
+    <string name="confirm">تأكيد</string>
+    <string name="ok">حسناً</string>
+    <string name="error">خطأ</string>
+    <string name="success">نجاح</string>
+    <string name="loading">جاري التحميل…</string>
+    <string name="saved_successfully">تم الحفظ بنجاح</string>
+    <string name="exported_successfully">تم التصدير بنجاح</string>
+</resources>
